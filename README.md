@@ -68,9 +68,24 @@ PC의 그것과 동일하게 미디어 스캔 없이 폴더 기반으로 작동�
 
 미디어 컨트롤러를 완벽하게 감추지는 못하지만, UI의 최소화로 얼핏 보면 무슨 앱이 켜져 있는지 알 수 없습니다. 직장 상사나 선생님 앞에서 당당하게 핸드폰을 켤 수 있습니다.
 
+<br><br>
+
+<img width="405" height="405" alt="Screenshot_20251130_232131" src="https://github.com/user-attachments/assets/f9b8636d-e1c0-47aa-b0cd-4a981bceeb6d" />
+
 <br>
 
+### 스피커 재생 금지
+
+(1.0.1 업데이트) 핸드폰 스피커에서는 오디오 파일이 재생되지 않습니다. 실수로 남들 앞에서 덕밍아웃 위험성을 사전에 방지합니다.
+
+<br><br>
+
 ## 근데 왜 플레이 스토어가 아니고 깃헙?
+
+<br>
+
+<img width="680" height="190" alt="스크린샷 2025-11-30 194020" src="https://github.com/user-attachments/assets/619374f2-7c77-4297-bd94-7bbfe5c8e1bc" />
+
 
 <br>
 
