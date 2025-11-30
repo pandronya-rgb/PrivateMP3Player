@@ -1,7 +1,10 @@
 # Private MP3 Player: Android 용 사생활 보호 MP3 플레이어
 
+<br>
+
 <img width="405" height="900" alt="1" src="https://github.com/user-attachments/assets/8ee7cf73-a1b8-42bf-89c7-85410ab91301" />
 
+<br><br>
 
 ## 소개
 - 학교와 직장에서 몰폰 하고 싶을 때
@@ -12,42 +15,64 @@
 - 사생활 정보가 가득한 제목의 녹음 파일
 - 정치/종교/신념이 드러나는 팟캐스트 제목 등등
 
+<br>
+
 듣고 있는 MP3에 대한 정보를 남에게 노출하고 싶지 않은 사람들을 위한 앱입니다.
 
+<br><br>
 
-## 특징
+## 기본 특징
 
-**수동 관리:**
+### 수동 관리
+
 PC의 그것과 동일하게 미디어 스캔 없이 폴더 기반으로 작동하며, 유저가 직접 관리하고, 선택한 로컬 폴더의 MP3만 재생할 수 있습니다.
 
-**nomedia 무시:**
+<br>
+
+### nomedia 무시
+
 .nomedia 파일이 있더라도 MP3 파일은 인식하고 재생 가능합니다. 부끄럽지(?) 않은 오디오 파일은 일반 미디어 플레이어로 당당하게 듣고, nomedia로 은밀하게 저장해 놓은 파일들을 감상할 수 있는 완벽한 이중생활이 가능합니다.
 
+<br>
 
-### 강력한 사생활 보호
+## 사생활 보호
 
 <img width="405" height="405" alt="2" src="https://github.com/user-attachments/assets/d8c0ed49-b911-4d5d-bf37-c36f5a70f159" />
 <img width="405" height="405" alt="3" src="https://github.com/user-attachments/assets/40a45a0c-0067-4604-8501-72a30b4db30e" />
 
-**파일명 감추기:**
+<br>
+
+### 파일명 감추기
+
 파일 목록과 재생 목록에서 실제 파일명 대신 순서대로 0001부터 표시되도록 설정할 수 있습니다. 지하철에서 옆에 앉은 사람이 곁눈질로는 여러분이 무슨 파일을 듣고 있는지 절대 알 수 없습니다.
 
+<br><br>
 
 <img width="405" height="405" alt="5" src="https://github.com/user-attachments/assets/47bb114a-a69e-4d94-9b76-a60160fcef51" />
 <img width="405" height="405" alt="4" src="https://github.com/user-attachments/assets/43526391-e3c1-4f96-9c4c-f2c954b06c0c" />
 
-**정보 감추기:**
+<br>
+
+### 정보 감추기
+
 오디오 플레이어의 기본적인 제어 기능 이외에는 앨범 아트, 태그, 파일명 그 어떤 것도 노출되지 않습니다. 블루투스 기기 등으로도 곡 정보가 전송되지 않도록 최소한의 메타데이터만을 사용합니다. 우연과 실수로 노출될 염려도 없어집니다.
 
+<br><br>
 
 <img width="405" height="405" alt="7" src="https://github.com/user-attachments/assets/938c65a6-001d-40ac-b2f7-152c15e9cad7" />
 <img width="405" height="405" alt="6" src="https://github.com/user-attachments/assets/5d1f5b54-6138-4110-a094-a670a2a5bf3c" />
 
-**위장 모드:**
+<br>
+
+### 위장 모드
+
 미디어 컨트롤러를 완벽하게 감추지는 못하지만, UI의 최소화로 얼핏 보면 무슨 앱이 켜져 있는지 알 수 없습니다. 직장 상사나 선생님 앞에서 당당하게 핸드폰을 켤 수 있습니다.
 
+<br>
 
 ## 근데 왜 플레이 스토어가 아니고 깃헙?
+
+<br>
 
 만든 김에 공유할 생각으로 플레이스토어에 무료 앱으로 올릴려고 했으나, 키스토어 라는것도 관리하라는 것도 귀찮은데 앱 업로드 사이트에서 권한 어쩌고 하길래, 제미나이에게 물어보니 무려 25달러를 내야 한다고 해서:
 
@@ -57,6 +82,7 @@ PC의 그것과 동일하게 미디어 스캔 없이 폴더 기반으로 작동�
 
 물론 깃헙까지 와서 이런 걸 다운로드할 사람이 누가 있겠냐마는... 뭐, 그렇습니다.
 
+<br><br>
 
 ## 라이센스
 
