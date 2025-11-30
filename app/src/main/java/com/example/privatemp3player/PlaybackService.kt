@@ -24,21 +24,33 @@ class PlaybackService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private lateinit var mediaSession: MediaSessionCompat
     var currentUri: Uri? = null
+    private var isStealthMode = false
 
     companion object {
         const val CHANNEL_ID = "private_channel"
         const val NOTIFICATION_ID = 1001
-
         const val ACTION_PREV = "com.privatemp3.player.ACTION_PREV"
         const val ACTION_NEXT = "com.privatemp3.player.ACTION_NEXT"
     }
 
-    inner class LocalBinder : Binder() { fun getService() = this@PlaybackService }
+    inner class LocalBinder : Binder() {
+        fun getService() = this@PlaybackService
+    }
 
     override fun onCreate() {
         super.onCreate()
         initializeMediaSession()
         createNotificationChannel()
+    }
+
+    fun setStealthMode(enabled: Boolean) {
+        if (isStealthMode != enabled) {
+            isStealthMode = enabled
+            val duration = if (enabled) -1L else getDuration().toLong()
+            updateMetadata(duration)
+            updatePlaybackState(if (isPlaying()) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED)
+            showNotification(isPlaying())
+        }
     }
 
     private fun initializeMediaSession() {
@@ -62,13 +74,21 @@ class PlaybackService : Service() {
     }
 
     private fun updateMetadata(duration: Long) {
-        val meta = MediaMetadataCompat.Builder()
-            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, " ")
-            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, " ")
-            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, " ")
-            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
-            .build()
-        mediaSession.setMetadata(meta)
+        val metaBuilder = MediaMetadataCompat.Builder()
+
+        if (isStealthMode) {
+            metaBuilder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, "알림 메시지")
+            metaBuilder.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "　")
+            metaBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1L)
+            metaBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, null)
+        } else {
+            metaBuilder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, "실행 중")
+            metaBuilder.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "　")
+            metaBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+            metaBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, null)
+        }
+
+        mediaSession.setMetadata(metaBuilder.build())
     }
 
     fun playUri(uri: Uri) {
@@ -80,7 +100,8 @@ class PlaybackService : Service() {
             prepare()
             start()
         }
-        updateMetadata(mediaPlayer?.duration?.toLong() ?: 0L)
+        val duration = if (isStealthMode) -1L else (mediaPlayer?.duration?.toLong() ?: 0L)
+        updateMetadata(duration)
         updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
         showNotification(true)
     }
@@ -115,47 +136,63 @@ class PlaybackService : Service() {
 
     private fun updatePlaybackState(state: Int) {
         val position = mediaPlayer?.currentPosition?.toLong() ?: 0L
-        val playbackState = PlaybackStateCompat.Builder()
-            .setActions(PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE or PlaybackStateCompat.ACTION_SEEK_TO or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_SKIP_TO_NEXT)
-            .setState(state, position, 1.0f)
-            .build()
-        mediaSession.setPlaybackState(playbackState)
+        val pStateBuilder = PlaybackStateCompat.Builder()
+
+        if (isStealthMode) {
+            pStateBuilder.setActions(0)
+            pStateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 0f)
+        } else {
+            pStateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE or PlaybackStateCompat.ACTION_SEEK_TO or PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_SKIP_TO_NEXT)
+            pStateBuilder.setState(state, position, 1.0f)
+        }
+
+        mediaSession.setPlaybackState(pStateBuilder.build())
     }
 
     private fun showNotification(isPlaying: Boolean) {
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
-        // 💡 [추가] 이전/다음 버튼용 PendingIntent (MediaButtonReceiver 이용)
-        val prevIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
-        val nextIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT)
-        val playPauseIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(this, if(isPlaying) PlaybackStateCompat.ACTION_PAUSE else PlaybackStateCompat.ACTION_PLAY)
-
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle("Playing")
-            .setContentText("")
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentIntent(pendingIntent)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(isPlaying)
-            .setStyle(MediaStyle()
+
+        if (isStealthMode) {
+            builder.setSmallIcon(android.R.drawable.ic_popup_sync)
+            builder.setContentTitle("알림 메시지")
+            builder.setContentText("　")
+            builder.setStyle(MediaStyle()
+                .setMediaSession(mediaSession.sessionToken)
+                .setShowActionsInCompactView())
+        } else {
+            val prevIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
+            val nextIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT)
+            val playPauseIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(this, if(isPlaying) PlaybackStateCompat.ACTION_PAUSE else PlaybackStateCompat.ACTION_PLAY)
+
+            builder.setSmallIcon(android.R.drawable.ic_media_play)
+            builder.setContentTitle("실행 중")
+            builder.setContentText("　")
+
+            builder.setStyle(MediaStyle()
                 .setMediaSession(mediaSession.sessionToken)
                 .setShowActionsInCompactView(0, 1, 2))
-            .addAction(android.R.drawable.ic_media_previous, "Prev", prevIntent)
-            .addAction(
+
+            builder.addAction(android.R.drawable.ic_media_previous, "Prev", prevIntent)
+            builder.addAction(
                 if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
                 "Pause", playPauseIntent
             )
-            .addAction(android.R.drawable.ic_media_next, "Next", nextIntent)
-            .build()
+            builder.addAction(android.R.drawable.ic_media_next, "Next", nextIntent)
+        }
 
-        startForeground(NOTIFICATION_ID, notification)
+        startForeground(NOTIFICATION_ID, builder.build())
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "Playback", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Controls"
+            val channel = NotificationChannel(CHANNEL_ID, "Service Status", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Shows service status"
                 setShowBadge(false)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             }
@@ -165,14 +202,3 @@ class PlaybackService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 }
-
-
-
-
-
-
-
-
-
-
-

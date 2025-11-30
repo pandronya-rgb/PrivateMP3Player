@@ -39,15 +39,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var playbackService: PlaybackService? = null
     private var isBound = false
-
-    // 데이터 리스트
     private var fileList = mutableListOf<DocumentFile>()
     private var playlist = mutableListOf<DocumentFile>()
     private var queueList = mutableListOf<DocumentFile>()
-
-    // 재생 상태
     private var currentQueueIndex = -1
-
     private val prefs by lazy { getSharedPreferences("private_player_prefs", Context.MODE_PRIVATE) }
 
     private var isPrivacyMode: Boolean
@@ -65,19 +60,24 @@ class MainActivity : AppCompatActivity() {
             applyTheme()
         }
 
-    // 재생 모드: 0=없음, 1=한곡, 2=전체
     private var playMode: Int
         get() = prefs.getInt("play_mode", 0)
         set(v) = prefs.edit().putInt("play_mode", v).apply()
 
+    private var isStealthMode: Boolean
+        get() = prefs.getBoolean("stealth_mode", false)
+        set(v) {
+            prefs.edit().putBoolean("stealth_mode", v).apply()
+            playbackService?.setStealthMode(v)
+        }
+
     private lateinit var browserAdapter: Mp3Adapter
     private lateinit var playlistAdapter: Mp3Adapter
     private lateinit var queueAdapter: Mp3Adapter
-
     private val playlistTouchHelper by lazy { createDragHelper(playlist, playlistAdapter) }
     private val queueTouchHelper by lazy { createDragHelper(queueList, queueAdapter) }
-
     private val handler = Handler(Looper.getMainLooper())
+
     private val updateSeekBarRunnable = object : Runnable {
         override fun run() {
             playbackService?.let {
@@ -108,12 +108,12 @@ class MainActivity : AppCompatActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             playbackService = (service as PlaybackService.LocalBinder).getService()
             isBound = true
+            playbackService?.setStealthMode(isStealthMode)
             handler.post(updateSeekBarRunnable)
         }
         override fun onServiceDisconnected(name: ComponentName?) { isBound = false }
     }
 
-    // 폴더 선택 런처
     private val folderPicker = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let {
             contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
@@ -137,12 +137,10 @@ class MainActivity : AppCompatActivity() {
         } else {
             registerReceiver(mediaReceiver, filter)
         }
-
         Intent(this, PlaybackService::class.java).also {
             startService(it)
             bindService(it, connection, Context.BIND_AUTO_CREATE)
         }
-
         setupUI()
         loadSavedRoot()
     }
@@ -165,14 +163,12 @@ class MainActivity : AppCompatActivity() {
             adapter = browserAdapter
             addItemDecoration(DividerItemDecoration(this@MainActivity, LinearLayoutManager.VERTICAL))
         }
+
         binding.fragmentContainer.addView(rvBrowser)
-
         binding.btnNavFiles?.setOnClickListener { showView(0) }
-
         binding.btnNavQueue.setOnClickListener { showView(2) }
         binding.btnNavPlaylist.setOnClickListener { showView(1) }
         binding.btnNavOption.setOnClickListener { showOptionsMenu(it) }
-
         binding.btnPlayPause.setOnClickListener { playbackService?.let { if (it.isPlaying()) it.pausePlayback() else it.resumePlayback() } }
         binding.btnPrev.setOnClickListener { playPreviousTrack() }
         binding.btnNext.setOnClickListener { playNextTrack() }
@@ -220,7 +216,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun showOptionsMenu(view: View) {
         val popup = PopupMenu(this, view)
-
         popup.menu.add(0, 0, 0, "폴더 선택")
 
         val privacyTitle = if (isPrivacyMode) "파일명 감추기: 끄기" else "파일명 감추기: 켜기"
@@ -239,13 +234,17 @@ class MainActivity : AppCompatActivity() {
         val darkTitle = if (isDarkMode) "다크 모드: 끄기" else "다크 모드: 켜기"
         popup.menu.add(0, 5, 4, darkTitle)
 
+        val stealthTitle = if (isStealthMode) "위장 모드: 끄기" else "위장 모드: 켜기"
+        popup.menu.add(0, 6, 5, stealthTitle)
+
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                0 -> { folderPicker.launch(null); true } // 폴더 선택 실행
+                0 -> { folderPicker.launch(null); true }
                 1 -> { isPrivacyMode = !isPrivacyMode; notifyAllAdapters(); true }
                 2 -> { playMode = (playMode + 1) % 3; true }
                 4 -> { isDeleteEnabled = !isDeleteEnabled; true }
                 5 -> { isDarkMode = !isDarkMode; true }
+                6 -> { isStealthMode = !isStealthMode; true }
                 else -> false
             }
         }
@@ -317,7 +316,6 @@ class MainActivity : AppCompatActivity() {
     inner class Mp3Adapter(private val list: MutableList<DocumentFile>, private val type: Int) : RecyclerView.Adapter<Mp3Adapter.ViewHolder>() {
         inner class ViewHolder(val b: ItemMp3Binding) : RecyclerView.ViewHolder(b.root)
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(ItemMp3Binding.inflate(LayoutInflater.from(parent.context), parent, false))
-
         @SuppressLint("ClickableViewAccessibility")
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val file = list[position]
@@ -385,12 +383,3 @@ class MainActivity : AppCompatActivity() {
         handler.removeCallbacks(updateSeekBarRunnable)
     }
 }
-
-
-
-
-
-
-
-
-
