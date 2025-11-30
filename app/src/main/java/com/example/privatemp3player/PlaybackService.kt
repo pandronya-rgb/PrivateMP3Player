@@ -4,8 +4,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Binder
@@ -14,6 +17,7 @@ import android.os.IBinder
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media.session.MediaButtonReceiver
@@ -24,7 +28,11 @@ class PlaybackService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private lateinit var mediaSession: MediaSessionCompat
     var currentUri: Uri? = null
+    var completionCallback: (() -> Unit)? = null
+
     private var isStealthMode = false
+    private var isHeadsetOnly = false
+    private val audioManager by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
 
     companion object {
         const val CHANNEL_ID = "private_channel"
@@ -51,6 +59,36 @@ class PlaybackService : Service() {
             updatePlaybackState(if (isPlaying()) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED)
             showNotification(isPlaying())
         }
+    }
+
+    fun setHeadsetOnlyMode(enabled: Boolean) {
+        isHeadsetOnly = enabled
+    }
+
+    private fun isHeadsetConnected(): Boolean {
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        for (device in devices) {
+            val type = device.type
+            if (type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+                type == AudioDeviceInfo.TYPE_USB_DEVICE) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun canPlay(): Boolean {
+        if (isHeadsetOnly && !isHeadsetConnected()) {
+            Toast.makeText(this, "이어폰이 연결되지 않아 재생할 수 없습니다.", Toast.LENGTH_SHORT).show()
+
+            updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            showNotification(false)
+            return false
+        }
+        return true
     }
 
     private fun initializeMediaSession() {
@@ -92,6 +130,8 @@ class PlaybackService : Service() {
     }
 
     fun playUri(uri: Uri) {
+        if (!canPlay()) return
+
         currentUri = uri
         mediaPlayer?.release()
         mediaPlayer = MediaPlayer().apply {
@@ -99,7 +139,7 @@ class PlaybackService : Service() {
             setDataSource(applicationContext, uri)
             prepare()
             setOnCompletionListener {
-                sendBroadcastAction(ACTION_NEXT)
+                completionCallback?.invoke()
             }
             start()
         }
@@ -115,6 +155,8 @@ class PlaybackService : Service() {
     }
 
     fun resumePlayback() {
+        if (!canPlay()) return
+
         mediaPlayer?.start()
         updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
         showNotification(true)
@@ -204,3 +246,5 @@ class PlaybackService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 }
+
+
