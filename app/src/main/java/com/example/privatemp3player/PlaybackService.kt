@@ -98,10 +98,12 @@ class PlaybackService : Service() {
             setAudioAttributes(AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).setUsage(AudioAttributes.USAGE_MEDIA).build())
             setDataSource(applicationContext, uri)
             prepare()
+            setOnCompletionListener {
+                sendBroadcastAction(ACTION_NEXT)
+            }
             start()
         }
-        val duration = if (isStealthMode) -1L else (mediaPlayer?.duration?.toLong() ?: 0L)
-        updateMetadata(duration)
+        updateMetadata(mediaPlayer?.duration?.toLong() ?: 0L)
         updatePlaybackState(PlaybackStateCompat.STATE_PLAYING)
         showNotification(true)
     }
